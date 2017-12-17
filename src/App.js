@@ -16,7 +16,7 @@ class App extends Component {
             rows: 4,
             columns: 4,
             disabled: true,
-            message: 'win'
+            message: false
         };
     }
 
