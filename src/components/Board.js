@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { DragDropContext } from 'react-dnd';
 import HTML5Backend from 'react-dnd-html5-backend';
+import { default as TouchBackend } from 'react-dnd-touch-backend';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 
 import Square from './Square';
@@ -47,4 +48,4 @@ class Board extends Component {
     }
 }
 
-export default DragDropContext(HTML5Backend)(Board);
+export default DragDropContext(TouchBackend)(Board);
