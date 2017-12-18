@@ -11,18 +11,24 @@ class Square extends Component {
         }
     }
 
+    handleDrag() {
+        if (this.props.fixed === true) {
+            this.container.classList.add('shake');
+        }
+    }
+
     render() {
         const {
-            horizontal = {},
-            vertical,
+            color,
             connectDragSource,
             connectDropTarget,
-            fixed = false
+            fixed = false,
+            debugMode = false
         } = this.props;
-        const horizontalStyle  = `linear-gradient(to right, ${horizontal.start} 0%, ${horizontal.end} 100%)`;
-        const verticalStyle  = `linear-gradient(to bottom, ${vertical.start} 0%, ${vertical.end} 100%)`;
+        // const horizontalStyle  = `linear-gradient(to right, ${horizontal.start} 0%, ${horizontal.end} 100%)`;
+        // const verticalStyle  = `linear-gradient(to bottom, ${vertical.start} 0%, ${vertical.end} 100%)`;
         const style = {
-            background: `${horizontalStyle}, ${verticalStyle}`
+            background: color
         };
         const classes = ['square'];
 
@@ -35,8 +41,9 @@ class Square extends Component {
                 <div
                     ref={this.setContainerRef}
                     className={classes.join(' ')}
-                    style={style}>
-                    {this.props.rightPosition}
+                    style={style}
+                    onDragStart={this.handleDrag.bind(this)}>
+                    {debugMode ? this.props.rightPosition : ''}
                 </div>
             )
         );
@@ -83,12 +90,8 @@ export default DragSource(
         endDrag(props, monitor, component) {
             const element = findDOMNode(component);
             element.classList.remove('dragging');
-
-            if (!monitor.didDrop()) {
-                return;
-            }
         },
-        canDrag(props) {
+        canDrag(props, monitor) {
             return props.fixed !== true && props.disabled !== true;
         }
     },

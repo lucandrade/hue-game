@@ -1,11 +1,15 @@
 import React, { Component } from 'react';
 import Chroma from 'chroma-js';
-import InvertColor from 'invert-color';
 
 import Board from './components/Board';
 import Modal from './components/Modal';
 import Win from './components/Messages/Win';
 import './styles/index.scss';
+
+/**
+ * A dificuldade pode ser aumentada alterando a opacidade das cores do background
+ * Quanto menor a distancia de opacidade entre o inicio e o fim da cor, mais dificil 
+ */
 
 class App extends Component {
     constructor(props) {
@@ -13,10 +17,11 @@ class App extends Component {
         this.state = {
             colors: [],
             changes: null,
-            rows: 4,
-            columns: 4,
+            rows: 6,
+            columns: 10,
             disabled: true,
-            message: false
+            message: false,
+            debugMode: false
         };
     }
 
@@ -31,13 +36,13 @@ class App extends Component {
             this.validateGame();
         }
 
-        if ((prevState.changes === null || prevState.change > this.state.changes) && this.state.changes === 0) {
+        if (prevState.changes !== this.state.changes && this.state.changes === 0) {
             setTimeout(() => {
                 me.setState({
                     colors: me.sortColors(me.state.colors),
                     disabled: false
                 });
-            }, 2000);
+            }, 3000);
         }
     }
 
@@ -45,39 +50,36 @@ class App extends Component {
         return Chroma.blend(firstColor, secondColor, 'multiply').rgb();
     }
 
+    getRandomPositions(colors) {
+        return [0, this.state.columns-1, colors.length-this.state.columns, colors.length-1];
+    }
+
     setColorsFixed(colors, colorsFixedAmount = 4) {
         let fixedPositions = [];
-        let randomPosition;
+        const randomPositions = this.getRandomPositions(colors);
 
-        while (fixedPositions.length < colorsFixedAmount) {
-            randomPosition = Math.floor(Math.random() * (colors.length-1 + 1));
-
-            if (colors[randomPosition].fixed !== true) {
-                colors[randomPosition].fixed = true;
-                fixedPositions.push(randomPosition);
-            }
-        }
+        randomPositions.forEach(p => {
+            colors[p].fixed = true;
+            fixedPositions.push(p);
+        });
 
         return colors;
     }
 
     sortColors(colors) {
-        const sortedColors = Array.from(colors).sort(() => 0.5 - Math.random());
-        const fixedColors = sortedColors.filter((c, i) => {
+        const fixedColors = [];
+
+        colors.forEach((c, i) => {
             if (c.fixed === true) {
-                c.currentPosition = i;
+                fixedColors.push(colors.splice(i, 1)[0]);
             }
-
-            return c.fixed === true;
         });
-        let fixedColor, tempColor;
+        const sortedColors = Array.from(colors).sort(() => 0.5 - Math.random());
 
-        fixedColors.forEach(c => {
-            tempColor = sortedColors[c.rightPosition];
-            fixedColor = sortedColors[c.currentPosition];
-            sortedColors.splice(c.currentPosition, 1, tempColor);
-            sortedColors.splice(c.rightPosition, 1, fixedColor);
-        });
+        fixedColors
+            .forEach(c => {
+                sortedColors.splice(c.rightPosition, 0, c);
+            });
 
         return sortedColors;
     }
@@ -87,46 +89,44 @@ class App extends Component {
     }
 
     getRandomColors() {
+        return ['yellow', 'grey', 'blue', 'pink'];
         const colors = [
+            Chroma.random().hex(),
+            Chroma.random().hex(),
             Chroma.random().hex(),
             Chroma.random().hex()
         ];
 
-        const lastColor = InvertColor.asRgbArray(colors[0], true);
-        // Inverte a ultima cor par ficar mais facil
-        colors.push(lastColor);
+        colors[0] = Chroma(colors[0]).brighten(2).hex();
+
+        return colors;
+    }
+
+    getColors(rows, columns) {
+        const firstColumn = Chroma.scale([Chroma.random().hex(), Chroma.random().hex()])
+            .mode('lab')
+            .colors(rows, 'hex');
+        const secondColumn = Chroma.scale([Chroma.random().hex(), Chroma.random().hex()])
+            .mode('lab')
+            .colors(rows, 'hex');
+        let colors = [];
+        
+        for(let i in firstColumn) {
+            colors = colors.concat(Chroma.scale([firstColumn[i], secondColumn[i]])
+                .mode('lab')
+                .colors(columns, 'hex'))
+        }
 
         return colors;
     }
 
     getBoardColors(rows, columns) {
-        const randomColors = this.getRandomColors();
-        const rowsColors = Chroma.scale([randomColors[0], randomColors[1]])
-            .mode('lab')
-            .colors(rows+1, 'rgb');
-        const columnsColors = Chroma.scale([randomColors[0], randomColors[2]])
-            .mode('lab')
-            .colors(columns+1, 'rgb');
-        let end, data;
-        const colors = [];
-
-        for (let r = 0; r < rowsColors.length-1; r++) {
-            for (let c = 0; c < columnsColors.length-1; c++) {
-                end = this.getBlendedColor(columnsColors[c], rowsColors[r+1]);
-                data = {
-                    horizontal: {
-                        start: `rgba(${columnsColors[c].join(", ")}, .5)`,
-                        end: `rgba(${columnsColors[c+1].join(", ")}, .5)`
-                    },
-                    vertical: {
-                        start: `rgba(${rowsColors[r].join(", ")}, .5)`,
-                        end: `rgba(${end.join(", ")}, .5)`
-                    },
-                    rightPosition: colors.length
-                };
-                colors.push(data);
-            }
-        }
+        const colors = this.getColors(rows, columns).map((c, i) => {
+            return {
+                rightPosition: i,
+                color: c
+            };
+        });
 
         return this.prepareColors(colors);
     }
@@ -142,12 +142,16 @@ class App extends Component {
         }, true);
 
         if (valid) {
-            const me = this;
-
-            setTimeout(() => {
-                me.setState({message: 'win'});
-            }, 200);
+            this.winGame();
         }
+    }
+
+    winGame() {
+        const me = this;
+
+        setTimeout(() => {
+            me.setState({message: 'win'});
+        }, 1000);
     }
 
     handleReorderColors(colors) {
@@ -164,6 +168,10 @@ class App extends Component {
     handleCloseMessage() {
         this.setState({message: false});
         this.handleCreateGame();
+    }
+
+    handleToggleDebugMode() {
+        this.setState({debugMode: !this.state.debugMode});
     }
 
     getMessage(message) {
@@ -198,11 +206,13 @@ class App extends Component {
         return (
             <div className="app">
                 <Board
+                    debugMode={this.state.debugMode}
                     disabled={this.state.disabled}
                     rows={this.state.rows}
                     columns={this.state.columns}
                     colors={this.state.colors}
                     onChange={this.handleReorderColors.bind(this)}
+                    onToggleDebugMode={this.handleToggleDebugMode.bind(this)}
                     onNew={this.handleCreateGame.bind(this)} />
                 {this.renderMessage()}
             </div>
