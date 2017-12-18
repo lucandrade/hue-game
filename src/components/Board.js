@@ -5,6 +5,7 @@ import { default as TouchBackend } from 'react-dnd-touch-backend';
 import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
 
 import Square from './Square';
+import IsMobile from '../functions/IsMobile';
 
 class Board extends Component {
     handleChange(from, to) {
@@ -48,4 +49,12 @@ class Board extends Component {
     }
 }
 
-export default DragDropContext(TouchBackend)(Board);
+let instance;
+
+if (IsMobile()) {
+    instance = DragDropContext(TouchBackend)(Board);
+} else {
+    instance = DragDropContext(HTML5Backend)(Board);
+}
+
+export default instance;
