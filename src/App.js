@@ -4,6 +4,7 @@ import Chroma from 'chroma-js';
 import Board from './components/Board';
 import Modal from './components/Modal';
 import Win from './components/Messages/Win';
+import GetRandomColors from './functions/GetRandomColors';
 import './styles/index.scss';
 
 /**
@@ -18,7 +19,7 @@ class App extends Component {
             colors: [],
             changes: null,
             rows: 6,
-            columns: 10,
+            columns: 12,
             disabled: true,
             message: false,
             debugMode: false
@@ -46,10 +47,6 @@ class App extends Component {
         }
     }
 
-    getBlendedColor(firstColor, secondColor) {
-        return Chroma.blend(firstColor, secondColor, 'multiply').rgb();
-    }
-
     getRandomPositions(colors) {
         return [0, this.state.columns-1, colors.length-this.state.columns, colors.length-1];
     }
@@ -74,6 +71,7 @@ class App extends Component {
                 fixedColors.push(colors.splice(i, 1)[0]);
             }
         });
+
         const sortedColors = Array.from(colors).sort(() => 0.5 - Math.random());
 
         fixedColors
@@ -88,32 +86,20 @@ class App extends Component {
         return this.setColorsFixed(colors);
     }
 
-    getRandomColors() {
-        return ['yellow', 'grey', 'blue', 'pink'];
-        const colors = [
-            Chroma.random().hex(),
-            Chroma.random().hex(),
-            Chroma.random().hex(),
-            Chroma.random().hex()
-        ];
-
-        colors[0] = Chroma(colors[0]).brighten(2).hex();
-
-        return colors;
-    }
-
     getColors(rows, columns) {
-        const firstColumn = Chroma.scale([Chroma.random().hex(), Chroma.random().hex()])
-            .mode('lab')
+        window.Chroma = Chroma;
+        const randomColors = GetRandomColors();
+        const firstColumn = Chroma.scale([randomColors[0], randomColors[1]])
+            .mode('rgb')
             .colors(rows, 'hex');
-        const secondColumn = Chroma.scale([Chroma.random().hex(), Chroma.random().hex()])
-            .mode('lab')
+        const secondColumn = Chroma.scale([randomColors[2], randomColors[3]])
+            .mode('rgb')
             .colors(rows, 'hex');
         let colors = [];
         
         for(let i in firstColumn) {
             colors = colors.concat(Chroma.scale([firstColumn[i], secondColumn[i]])
-                .mode('lab')
+                .mode('rgb')
                 .colors(columns, 'hex'))
         }
 
